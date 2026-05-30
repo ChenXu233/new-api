@@ -254,6 +254,8 @@ func migrateDB() error {
 	if err := migrateTokenModelLimitsToText(); err != nil {
 		return err
 	}
+	// Ensure cache token columns exist in quota_data before AutoMigrate
+	migrateQuotaDataCacheTokenColumns()
 
 	err := DB.AutoMigrate(
 		&Channel{},
@@ -564,6 +566,20 @@ func migrateSubscriptionPlanPriceAmount() {
 			common.SysLog(fmt.Sprintf("Warning: failed to migrate %s.%s to decimal: %v", tableName, columnName, err))
 		} else {
 			common.SysLog(fmt.Sprintf("Successfully migrated %s.%s to decimal(10,6)", tableName, columnName))
+		}
+	}
+}
+
+func migrateQuotaDataCacheTokenColumns() {
+	if !DB.Migrator().HasTable("quota_data") {
+		return
+	}
+	columns := []string{"cache_tokens", "cache_creation_tokens", "cache_creation_tokens_5m", "cache_creation_tokens_1h"}
+	for _, col := range columns {
+		if !DB.Migrator().HasColumn("quota_data", col) {
+			if err := DB.Exec(fmt.Sprintf("ALTER TABLE quota_data ADD COLUMN %s INTEGER NOT NULL DEFAULT 0", col)).Error; err != nil {
+				common.SysLog(fmt.Sprintf("Warning: failed to add column quota_data.%s: %v", col, err))
+			}
 		}
 	}
 }
