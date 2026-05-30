@@ -8,10 +8,12 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 export default defineConfig(({ envMode }) => {
   const env = loadEnv({ mode: envMode, prefixes: ['VITE_'] })
+  // Go 后端端口：开发代理模式下默认 3001，否则默认 3000
+  const goPort = process.env.VITE_GO_PORT || '3000'
   const serverUrl =
     process.env.VITE_REACT_APP_SERVER_URL ||
     env.rawPublicVars.VITE_REACT_APP_SERVER_URL ||
-    'http://localhost:3000'
+    `http://localhost:${goPort}`
 
   const isProd = envMode === 'production'
   const devProxy = Object.fromEntries(
@@ -92,9 +94,7 @@ export default defineConfig(({ envMode }) => {
         plugins: [
           tanstackRouter({
             target: 'react',
-            // Dev: avoid per-route async chunks (reduces white flash on navigation + faster HMR feedback).
-            // Prod: keep route-based code splitting.
-            autoCodeSplitting: isProd,
+            autoCodeSplitting: true,
           }),
         ],
       },

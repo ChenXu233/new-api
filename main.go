@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -199,6 +200,13 @@ func main() {
 	var port = os.Getenv("PORT")
 	if port == "" {
 		port = strconv.Itoa(*common.Port)
+	}
+	// 开发模式下自动避免与 Rsbuild dev server 端口冲突
+	if devProxy := os.Getenv("FRONTEND_DEV_PROXY"); devProxy != "" {
+		if proxyURL, err := url.Parse(devProxy); err == nil && proxyURL.Port() == port {
+			port = "3001"
+			common.SysLog("FRONTEND_DEV_PROXY target port conflicts, auto-switching to port " + port)
+		}
 	}
 
 	// Log startup success message
